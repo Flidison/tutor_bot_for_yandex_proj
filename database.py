@@ -81,9 +81,6 @@ async def create_table():
                     )
                 """)
         await db.commit()
-
-
-# Вызови функцию create_table при запуске бота
 async def setup_database():
     await create_table()
 

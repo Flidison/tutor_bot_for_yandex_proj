@@ -43,22 +43,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ]))
         context.user_data["register_step"] = "role"
 
-'''async def handle_role_choice(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-
-    role = query.data.split("_")[1]
-    user_id = query.from_user.id
-    user = await get_user(user_id)
-
-    if not user:
-        await query.edit_message_text("Ошибка: пользователь не найден.")
-        return
-
-    name = user[1]  # имя уже есть в базе
-    await add_user(user_id, name, role, confirmed=1)
-    await query.edit_message_text(text=f"Вы зарегистрированы как {role.capitalize()}.")
-    await start(update, context)'''
 
 
 async def handle_role_choice(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -103,7 +87,6 @@ async def handle_student_registration(update: Update, context: ContextTypes.DEFA
         student_name = user[1]
         teacher_id = update.effective_user.id
 
-        # Сохраняем временное ожидание подтверждения
         context.user_data["pending_student_id"] = student_id
 
         await update.message.reply_text(f"Отправлено приглашение ученику: {student_name}. Ждём подтверждения.")
@@ -121,41 +104,6 @@ async def handle_student_registration(update: Update, context: ContextTypes.DEFA
             await update.message.reply_text("Не удалось отправить сообщение ученику. Возможно, он не запускал бота.")
         context.user_data.clear()
 
-
-'''async def handle_student_registration(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    step = context.user_data.get("add_student_step")
-
-    if step == "awaiting_id":
-        try:
-            student_id = int(update.message.text)
-
-        except ValueError:
-            await update.message.reply_text("Не удалось отправить сообщение ученику. Убедитесь, что он написал боту хотя бы одно сообщение, проверьте корректность введеного Telegram ID.")
-            return
-
-
-        context.user_data["new_student_id"] = student_id
-        await update.message.reply_text("Введите имя ученика:")
-        context.user_data["add_student_step"] = "awaiting_name"
-
-    elif step == "awaiting_name":
-        name = update.message.text
-        student_id = context.user_data["new_student_id"]
-
-        await add_user(student_id, name, "student", confirmed=0)
-        await update.message.reply_text("Ученик добавлен. Ждём подтверждения.")
-        try:
-            await context.bot.send_message(
-                chat_id=student_id,
-                text=f"Репетитор добавил вас как ученика с именем {name}. Подтвердите регистрацию.",
-                reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("Подтвердить", callback_data=f"confirm_{student_id}")],
-                    [InlineKeyboardButton("Отклонить", callback_data=f"decline_{student_id}")]
-                ])
-            )
-        except:
-            await update.message.reply_text("Не удалось отправить сообщение ученику. Проверьте ID.")
-        context.user_data["add_student_step"] = None'''
 async def handle_student_response(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -188,17 +136,6 @@ async def handle_student_response(update: Update, context: ContextTypes.DEFAULT_
             text=f"Ученик не принял ваше приглашение")
     context.user_data.clear()
 
-'''async def handle_student_response(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-
-    data = query.data
-    if data.startswith("confirm_"):
-        student_id = int(data.split("_")[1])
-        await confirm_user(student_id)
-        await query.edit_message_text("Вы подтвердили регистрацию.")
-    elif data.startswith("decline_"):
-        await query.edit_message_text("Вы отклонили регистрацию.")'''
 
 async def create_lesson_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = await get_user(update.effective_user.id)
@@ -364,7 +301,6 @@ async def handle_homework_input(update: Update, context: ContextTypes.DEFAULT_TY
                 await db.execute("UPDATE lessons SET zoom_link = ? WHERE id = ?", (link, lesson_id))
                 await db.commit()
 
-        # Уведомление ученикам
         async with aiosqlite.connect(DB_NAME) as db:
             cursor = await db.execute("SELECT student_id FROM lesson_students WHERE lesson_id = ?", (lesson_id,))
             students = await cursor.fetchall()
@@ -517,11 +453,6 @@ async def handle_feedback_input(update: Update, context: ContextTypes.DEFAULT_TY
     await update.message.reply_text("Комментарий отправлен ученику.")
     context.user_data["grading_step"] = None
 
-
-
-
-
-
 async def handle_all_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if context.user_data.get("register_step"):
@@ -567,28 +498,3 @@ async def main():
 if __name__ == "__main__":
 
     asyncio.run(main())
-
-
-
-"""app.add_handler(CommandHandler("start", start))
-    app.add_handler(CallbackQueryHandler(handle_role_choice, pattern="^role_"))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    app.add_handler(CommandHandler("add_student", add_student_command))
-    app.add_handler(CallbackQueryHandler(handle_student_response, pattern="^(confirm|decline)_"))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_student_registration))
-
-    app.add_handler(CommandHandler("create_lesson", create_lesson_command))
-    app.add_handler(CallbackQueryHandler(handle_lesson_selection, pattern="^(addstudent_|finish_lesson)"))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_create_lesson_steps))
-
-    app.add_handler(CommandHandler("homework", homework_command))
-    app.add_handler(CallbackQueryHandler(handle_homework_lesson_choice, pattern="^hwselect_"))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_homework_input))
-
-    app.add_handler(CommandHandler("my_homework", my_homework_command))
-    app.add_handler(CallbackQueryHandler(handle_homework_done, pattern="^hwdone_"))
-
-    app.add_handler(CommandHandler("check_homework", check_homework_command))
-    app.add_handler(CallbackQueryHandler(handle_check_homework, pattern="^checkhw_"))
-    app.add_handler(CallbackQueryHandler(handle_grading, pattern="^grade_"))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_feedback_input))'''"""
