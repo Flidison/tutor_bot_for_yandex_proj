@@ -1,0 +1,4 @@
+telegram==21.11.1
+asyncio
+nest_asyncio
+aiosqlite
