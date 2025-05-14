@@ -13,6 +13,8 @@ import aiosqlite
 nest_asyncio.apply()
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    with open('hello.png', 'rb') as photo:
+        await update.message.reply_photo(photo=photo)
     user_id = update.effective_user.id
     user = await get_user(user_id)
 
