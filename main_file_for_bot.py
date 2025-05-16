@@ -57,6 +57,7 @@ async def handle_role_choice(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
     await add_user(user_id, name, role,update.effective_user.username, confirmed=1)
     await query.edit_message_text(text=f"Вы зарегистрированы как {role.capitalize()}.")
+    context.user_data.clear()
     await start(update, context)
 
 async def add_student_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
